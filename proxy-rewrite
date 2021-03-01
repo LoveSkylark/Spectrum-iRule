@@ -1,1 +1,18 @@
+when CLIENT_ACCEPTED {
+    TCP::collect 15
+    set hsl [HSL::open -proto UDP -pool pl_Graylog] 
+}
+when CLIENT_DATA {
+    set proxy_string [TCP::payload]
+    scan $proxy_string {PROXY TCP%s%s} tcpver srcaddr
+    TCP::release
+}
+when LB_SELECTED {
+    HSL::send $hsl  "[subst $proxy_string]"
+
+    if {[info exists tcpver] && ( $tcpver == "4")} {
+       snat $srcaddr
+       HSL::send $hsl  "Changed Source address to $srcaddr"
+    }   
+}
 
